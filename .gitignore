@@ -1,0 +1,42 @@
+logs
+project/project
+project/target
+project/boot
+target
+tmp
+assets/chartReport.txt
+.history
+dist
+.ensime
+.ensime_lucene/
+.idea/
+.idea_modules/
+.DS_Store
+*.swp
+*.swo
+*.pyc
+*.iml
+tags
+
+Gemfile
+Gemfile.lock
+
+# sbt-extras local cache
+project/.boot
+project/.ivy
+
+
+# temp files
+.~*
+*~
+*.orig
+
+# eclipse
+.scala_dependencies
+.buildpath
+.cache
+.target
+bin/
+.classpath
+.project
+.settings/
