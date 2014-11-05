@@ -455,9 +455,10 @@ still implement these variations. Scala provides defaults for all versions in
 It will box things up and call the generic version. It'll then attempt to unbox
 the generic (`Object`) result as a `double`. Look familiar? It should - this is
 exactly what we were already doing above. The key difference, of course, is that
-now it is done for us when `f`'s return type isn't `Double` and, most importantly,
-if `f`'s return type is `Double`, then we just get back the `double`, no round
-trip through a box!
+now it is done for us when `f`'s return type isn't `Double` via this default
+implementation and, most importantly, if `f`'s return type is `Double`, then
+`Function1`'s `apply$mcDD$sp` will be implemented and we just get back the
+`double`, no round trip through a box!
 
 Alright, so let's exploit this new knowledge to get rid of the boxing on the return
 side of `f`.
@@ -524,7 +525,7 @@ generically, then we pattern match on the return type to see if it is a
 `Double`. The main reason we do this here is to avoid throwing/catching
 exceptions in the common case (when `B` isn't a `Double`), since they're
 costly.  It is still possible the head is a `Double`, but some other values
-aren't, but I don't believe that isn't a case worth optimizing for. The other
+aren't, but I don't believe that is a case worth optimizing for. The other
 reason we pattern match on the head is to better support multiple
 specializations.  In this article we only manually specialized on `Double`, but
 if were to also support, say, manually specialized `IntVec` and `LongVec` along
