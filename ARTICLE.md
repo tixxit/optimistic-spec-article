@@ -365,11 +365,12 @@ Attempt 5: Exploiting @specialized
 ----------------------------------
 
 The next sensible question to ask is *why is ours slower*? At this point, the
-main difference between the while loop and our `map` method is that they are
-squaring the elements directly, while we are calling a function `f`. However,
-method calls on the JVM are not slow and, in this case, would likely be inlined
-by the JVM. Regardless, the overhead of invoking `f` would certainly would not
-be responsible for a 2x slow down! The root cause is really here:
+main difference between the while loop and our `map` method is that the `while`
+loop is squaring the elements directly, while our `map` method is calling the
+function `f`.  However, method calls on the JVM are not slow and, in this case,
+would likely be inlined by the JVM. Regardless, the overhead of invoking `f`
+would certainly would not be responsible for a 2x slow down! The root cause is
+really here:
 
 ```scala
   def map[B](f: Double => B): Vec[B] = {
