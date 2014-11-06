@@ -579,7 +579,7 @@ type of manual specialization is negligible in the common, generic case. In
 `squareIntVectorWithMap` we simply square all the values in a `Vector[Int]`
 with `map`. In `squareIntVec` we do the same, but with a `GenericVec[Int]`. The
 result is that the generic `map` isn't any slower than just running `map` on
-`Vector`.
+`Vector`. We can have our cake and eat it too.
 
 Conclusion
 ----------
