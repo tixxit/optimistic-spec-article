@@ -150,10 +150,10 @@ Attempt 2: Manual Specialization
 
 In Attempt 1 I had mentioned that we couldn't store the elements in arrays,
 because `map`'s signature doesn't provide a `ClassTag` for us to create the
-result array in. But that doesn't mean we can at least store the *initial* data
-in a array. We'll create a new subtype of `Vec` that is specialized for
-`Double` data. If a `Vec[A]` is constructed with an array of `Double`, we
-can wrap a copy of the array in this specialized version of `Vec`.
+result array in. But that doesn't mean we can't at least store the *initial*
+data in an array. We'll create a new subtype of `Vec` that is specialized for
+`Double` data. If a `Vec[A]` is constructed with an array of `Double`, we can
+wrap a copy of the array in this specialized version of `Vec`.
 
 ```scala
 sealed trait Vec[A] {
@@ -452,16 +452,26 @@ still implement these variations. Scala provides defaults for all versions in
       13: dreturn
 ```
 
-It will box things up and call the generic version. It'll then attempt to unbox
-the generic (`Object`) result as a `double`. Look familiar? It should - this is
-exactly what we were already doing above. The key difference, of course, is that
-now it is done for us when `f`'s return type isn't `Double` via this default
-implementation and, most importantly, if `f`'s return type is `Double`, then
-`Function1`'s `apply$mcDD$sp` will be implemented and we just get back the
-`double`, no round trip through a box!
+This version simply delegates back to the generic version (the version that
+takes an `Object` and returns an `Object`). Since it's argument is a primitive
+`double`, it'll first box it up in a `Double` via `boxToDouble` (2), then it
+calls the generic version with the boxed `Double` (5). Since the result of the
+generic version is an `Object`, it must *unbox* the `Object` back to a
+primitive `double`, so it calls `unboxToDouble` (10). The `unboxToDouble`
+method will cast the `Object` to a boxed `Double`, then unbox it. Sound
+familiar? It should - this is exactly what we were already doing above when
+we were casting the result of `f` to a `Double`.
 
-Alright, so let's exploit this new knowledge to get rid of the boxing on the return
-side of `f`.
+The key difference with the default implementation of `apply$mcDD$sp`, of
+course, is that now it is done for us. When `f`'s return type isn't `Double`
+then this default method will simply throw a `ClassCastException` when it
+attempts to invoke `unboxToDouble`. Most importantly though, if `f`'s return
+type is `Double`, then `Function1`'s `apply$mcDD$sp` will have been implemented
+by the Scala compiler and we just get back the `double`, no round trip through
+a box!
+
+Alright, so let's exploit this new knowledge to get rid of the boxing when we
+call `f`.
 
 ```scala
 final case class DoubleVec(elems: Array[Double]) extends Vec[Double] {
