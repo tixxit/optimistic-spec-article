@@ -561,15 +561,25 @@ but hopefully this horror pays us back in the benchmarks...
 > attempt5/benchmark:benchmark
 ...
 [info] Benchmark                                       Mode  Samples       Score  Score error  Units
-[info] r.VecMapBenchmark.squareDoubleArrayWithLoop    thrpt       20  882646.295    45763.073  ops/s
-[info] r.VecMapBenchmark.squareDoubleArrayWithMap     thrpt       20   85871.737     2158.022  ops/s
-[info] r.VecMapBenchmark.squareDoubleVec              thrpt       20  892060.281    50342.168  ops/s
+[info] r.VecMapBenchmark.squareDoubleArrayWithLoop    thrpt       20  838141.743    23671.985  ops/s
+[info] r.VecMapBenchmark.squareDoubleArrayWithMap     thrpt       20   84297.351     4284.956  ops/s
+[info] r.VecMapBenchmark.squareDoubleVec              thrpt       20  864887.826    30140.549  ops/s
+[info] r.VecMapBenchmark.squareIntVec                 thrpt       20   59640.193     4068.827  ops/s
+[info] r.VecMapBenchmark.squareIntVectorWithMap       thrpt       20   60112.879     4284.077  ops/s
 ```
 
 And there it is! Even with a completely generic `Vec[A]` trait, we are still
 able to write a `map` that is as fast as while loop on a primitive array,
 without requiring we litter our methods with `ClassTag`s and `@specialized`
 annotations.
+
+There are also 2 more benchmarks I added to Attempt 5: `squareIntVec` and
+`squareIntVectorWithMap`. These were added just to show that the cost of this
+type of manual specialization is negligible in the common, generic case. In
+`squareIntVectorWithMap` we simply square all the values in a `Vector[Int]`
+with `map`. In `squareIntVec` we do the same, but with a `GenericVec[Int]`. The
+result is that the generic `map` isn't any slower than just running `map` on
+`Vector`.
 
 Conclusion
 ----------

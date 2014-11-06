@@ -77,13 +77,7 @@ case class GenericVec[A](elems: Vector[A]) extends Vec[A] {
     if (elems.length == 0) {
       GenericVec[B](Vector.empty)
     } else {
-
-      // The generic, deoptimized case.
-      def genericMap(bldr: Builder[B, Vector[B]], i: Int): Vec[B] =
-        if (i < elems.length) {
-          bldr += f(elems(i))
-          genericMap(bldr, i + 1)
-        } else GenericVec(bldr.result())
+      val iter = elems.iterator
 
       // The specialized, optimized case.
       def doubleMap(xs: Array[Double]): Vec[B] = {
@@ -92,7 +86,7 @@ case class GenericVec[A](elems: Vector[A]) extends Vec[A] {
         var i = 1
         try {
           while (i < xs.length) {
-            xs(i) = fLD(elems(i))
+            xs(i) = fLD(iter.next())
             i += 1
           }
           DoubleVec(xs).asInstanceOf[Vec[B]]
@@ -102,20 +96,22 @@ case class GenericVec[A](elems: Vector[A]) extends Vec[A] {
           (0 until i) foreach { j =>
             bldr += xs(j).asInstanceOf[B]
           }
-          genericMap(bldr, i)
+          iter.foreach(a => bldr += f(a))
+          GenericVec(bldr.result())
         }
       }
 
-      f(elems(0)) match {
+      f(iter.next()) match {
         case (x: Double) =>
           val xs = new Array[Double](elems.size)
-          xs(0)
+          xs(0) = x
           doubleMap(xs)
 
         case x =>
           val bldr = Vector.newBuilder[B]
           bldr += x
-          genericMap(bldr, 1)
+          iter.foreach(a => bldr += f(a))
+          GenericVec(bldr.result())
       }
     }
   }

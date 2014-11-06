@@ -25,6 +25,14 @@ class VecMapBenchmark {
   @Benchmark
   def squareDoubleVec(data: MapData) =
     data.doubleVec.map(x => x * x)
+
+  @Benchmark
+  def squareIntVectorWithMap(data: MapData) =
+    data.intData.map(x => x * x)
+
+  @Benchmark
+  def squareIntVec(data: MapData) =
+    data.intVec.map(x => x * x)
 }
 
 @State(Scope.Benchmark)
@@ -33,4 +41,7 @@ class MapData {
   val rng = new Random(42)
   val doubleData: Array[Double] = Array.fill(size)(rng.nextDouble)
   val doubleVec: Vec[Double] = Vec(doubleData)
+
+  val intData: Vector[Int] = Vector.fill(size)(rng.nextInt)
+  val intVec: Vec[Int] = Vec(intData.toArray)
 }
