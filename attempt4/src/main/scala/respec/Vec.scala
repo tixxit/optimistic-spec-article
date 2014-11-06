@@ -2,7 +2,7 @@ package respec
 
 import scala.collection.mutable.Builder
 
-sealed abstract class Vec[@specialized(Double) A] {
+sealed abstract class Vec[A] {
   def size: Int
   def apply(n: Int): A
   def map[B](f: A => B): Vec[B]

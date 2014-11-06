@@ -38,7 +38,7 @@ object Vec {
 ```
 
 Our **goal** is to have `Vec`'s `map` method be *as fast as* a simple, manually
-written while loop over an array of primitives, when `A` is a primtive type.
+written while loop over an array of primitives, when `A` is a primitive type.
 For the sake of size and sanity, we'll narrow "primitive types" to mean
 `Double`. We'll start this off by encoding our goal as a benchmark (using the
 fantastic JMH microbenchmarking library):
@@ -90,23 +90,23 @@ absolute best case we could hope for. On the JVM, we really can't hope to be
 faster than a straight while loop over an array with no function calls and only
 primitive double arithmetic.
 
-`squareDoubleArrayWithMap`: In this benchmark we simply use the `map` already
-found on an `Array`. This provides our *lower bound*. This is the absolute
-worst case that is acceptable, because if we're worse than `Array`'s `map`, why
-bother with the new type `Vec`?
+`squareDoubleArrayWithMap`: In this benchmark we simply use the `map` method
+already found on an `Array`. This provides our *lower bound*. This is the
+absolute worst case that is acceptable, because if we're worse than `Array`'s
+`map`, why bother with the new type `Vec`?
 
 `squareDoubleVec`: This is our actual benchmark. The goal is to have this come
-as close to `squareArrayWithLoop` as possible.
+as close to `squareDoubleArrayWithLoop` as possible.
 
 Attempt 1: Get It Working
 -------------------------
 
 Alright, let's get to work! We'll start with the simplest thing that works. At
 first glance it may seem like we should just wrap an `Array[A]`, since then
-we'll meet our lower bound goal (`squareArrayWithMap`) by definition. However,
-we don't have access to any `ClassTag`s in the signature of `map`, so we can't
-store the result of `map` in an array. We have to use something more generic:
-Scala's built-in `Vector` data structure will suffice for now.
+we'll meet our lower bound goal (`squareDoubleArrayWithMap`) by definition.
+However, we don't have access to any `ClassTag`s in the signature of `map`, so
+we can't store the result of `map` in an array. We have to use something more
+generic: Scala's built-in `Vector` data structure will suffice for now.
 
 ```scala
 sealed trait Vec[A] {
@@ -143,7 +143,7 @@ The **Score** is the number of ops/second (how many times can we execute the
 benchmark in a second), so higher is better. Right away you can see the results
 were quite abysmal.  Our `Vector` based version is 10x slower than a while
 loop. We have a lot of catching up to do! On the plus side, we actually did
-slightly better than our lowerbound, which is a bit surprising, but promising.
+slightly better than our lower bound, which is a bit surprising, but promising.
 
 Attempt 2: Manual Specialization
 --------------------------------
@@ -191,7 +191,7 @@ private case class DoubleVec(elems: Array[Double]) {
 
 You'll notice in our `Vec` constructor we are pattern matching on the type of
 the array with `case (elems: Array[Double]) =>`. This works because arrays
-are special on the JVM. An array's generic type is not erased and we have
+are special on the JVM. An array's generic type is **not** erased, so we have
 access to it at runtime and, hence, can pattern match on it. If our constructor
 had, instead, taken a `Vector[A]` argument then this would not be possible.
 
@@ -220,10 +220,10 @@ Attempt 3: Reflection
 
 So, how can we ensure that all `Vec[Double]`s are `DoubleVec`s? Well, if we
 inspect each of our elements in the result and verify that it is a `Double`,
-then we can safely store the result in an `Array[Double]`, casting all the
-elements to `Double`, then wrap that in a `DoubleVec`. We can even just create
-a simple constructor that does these checks and casts for us and return the
-result in the appropriate subtype of `Vec`.
+then we can safely store the result in an `Array[Double]`, and wrap that in a
+`DoubleVec`. We can even just create a simple constructor that does these
+checks and casts for us and return the result in the appropriate subtype of
+`Vec`.
 
 ```scala
 ...
@@ -245,9 +245,9 @@ object Vec {
 Our first `.asInstanceOf` shows up here; it won't be our last. We're doing a
 full scan over our vector and verifying all elements have type `Double`, then
 using `.asInstanceOf` to regain the lost type `A` (which we know can be
-`Double`). Once we have this, then we can create an array and stuff this into a
-`DoubleVec`. We can then use this method in `map` to construct our result from
-a `Vector[B]`.
+`Double`). Once we have a `Vector[Double]`, then we can convert it to an array
+and stuff this into a `DoubleVec`. We can then use this method in `map` to
+construct our result from a `Vector[B]`.
 
 ```scala
 final case class DoubleVec(elems: Array[Double]) extends Vec[Double] {
@@ -275,8 +275,9 @@ case class GenericVec[A](elems: Vector[A]) extends Vec[A] {
 }
 ```
 
-Clearly `fromVector` will cost us something. We're reading the data twice and constructing
-a new array, on top of what we were doing before. Let's see how much it hurts.
+Clearly `fromVector` will cost us something. We're still doing all the same
+work we were doing before, only now we're also reading the data another 1-2
+times and constructing a new array. Let's see how much it hurts.
 
 ```
 > attempt3/benchmark:benchmark
@@ -287,10 +288,10 @@ a new array, on top of what we were doing before. Let's see how much it hurts.
 [info] r.VecMapBenchmark.squareDoubleVec              thrpt       20   59952.755     4436.288  ops/s
 ```
 
-Ouch. Those extra reads and array allocation/writes really hurt us. It doesn't
-necessarily mean the strategy is bad though, but we have to figure out someway
-to inline it with `map`'s while loop. We cannot rely on having time to verify
-types and convert `Vector`s to `Array`s after the fact.
+Ouch. Those extra reads and array construction really hurt us. It doesn't
+necessarily mean the strategy is bad, but we have to figure out some way to
+inline it with `map`'s while loop. We cannot rely on having time to verify
+types and convert `Vector`s to `Array`s *after the fact*.
 
 Attempt 4: Assume the Best, Prepare for the Worst
 -------------------------------------------------
@@ -334,13 +335,13 @@ final case class DoubleVec(elems: Array[Double]) extends Vec[Double] {
 ```
 
 Ack! More `asInstanceOf`s! You can see we just optimistically assume the result
-is a `Double` at the start and only revert to the deoptimized approach when
-we're proven wrong. Also, note that we evaluate `f` twice the first time it
-doesn't return a `Double`; we could fix this here, but we're not quite done yet
-and we this will be less of an issue later, so we'll ignore it for now.
-Anyways, let's give this a go. We're hoping that we'll at least get back up to
-the speeds we saw in **attempt 2**, but now with the added guarantee that if
-the result is a `Vec[Double]` we'll get back a `DoubleVec`.
+is a `Double` at the start and only revert to the deoptimized `Vector`
+building approach when we're proven wrong. Also, note that we evaluate `f`
+twice the first time it doesn't return a `Double`; we could fix this here, but
+we're not quite done yet and we this will be less of an issue later, so we'll
+ignore it for now.  Anyways, let's give this a go. We're hoping that we'll at
+least get back up to the speeds we saw in **attempt 2**, but now with the added
+guarantee that if the result is a `Vec[Double]` we'll get back a `DoubleVec`.
 
 ```
 > attempt4/benchmark:benchmark
@@ -354,14 +355,21 @@ the result is a `Vec[Double]` we'll get back a `DoubleVec`.
 Wow! We're now nearly within 2x slowdown over the while loop! Yeah, the code is
 not a great example of idiomatic Scala, but it is *fast*. Writing to an array
 optimistically means that we can avoid all the allocations and bad locality of
-`Vector` when our result is, in fact, a `Vec[Double]`. Do we stop here? Nope.
-Our goal was to get as close to `squareDoubleArrayWithLoop` as possible, and
-there is still plenty of room.
+`Vector` when our result is, in fact, a `Vec[Double]`. Don't underestimate the
+cost of cache misses in tight loops like these.
+
+Do we stop here? Nope. Our goal was to get as close to
+`squareDoubleArrayWithLoop` as possible, and there is still plenty of room.
 
 Attempt 5: Exploiting @specialized
 ----------------------------------
 
-The next sensible question to ask is *why is ours slower*? The key is really here:
+The next sensible question to ask is *why is ours slower*? At this point, the
+main difference between the while loop and our `map` method is that they are
+squaring the elements directly, while we are calling a function `f`. However,
+method calls on the JVM are not slow and, in this case, would likely be inlined
+by the JVM. Regardless, the overhead of invoking `f` would certainly would not
+be responsible for a 2x slow down! The root cause is really here:
 
 ```scala
   def map[B](f: Double => B): Vec[B] = {
@@ -378,20 +386,22 @@ primitive, since `B` is erased at runtime. Not only that, even though we *know*
 that our input type is a `Double`, we're *still* boxing it prior to applying `f`.
 The reason for this is that `Function1` doesn't specialize on `AnyRef`, only
 `Int`, `Long`, `Float`, and `Double`. This means specialized variants of
-`Function1`'s apply are only generated when both the argument and return type
+`Function1`'s `apply` are only generated when both the argument and return type
 are one of the 4 specialized types. A real shame. This means we're creating 2
-boxes on each iteration - one to box the double on the way *into* `f` and another
-that boxes the double on the way *out of* `f`. If we can get rid of this, perhaps
-we can reach our goal.
+boxes on each iteration - one to box the double on the way *into* `f` and
+another that boxes the double on the way *out of* `f`. Aside from the actual
+overhead of invoking `f`, these 2 boxes are the only major difference from the
+`while` loop.  If we can get rid of them, perhaps we can reach our goal.
 
 In order to get Scala to use the specialized versions of `Function1`'s apply
 (eg. `apply$mcDD$sp`, aka `Double => Double`) we need to convince the compiler
 that both the input and output types are `Double` (or some combination of the
 4 specialized types). What if we are super optimistic and not only assume that
-`B` is a `Double`, but go so far as to cast `f` to a function `Double =>
-Double`? Let's try it out!
+`B` is a `Double`, but go so far as to cast `f` to a function with type
+`Double => Double`? Let's try it out!
 
-First we'll define a function that isolates the behaviour we want to implement.
+First we'll define a function that isolates the behaviour we want to implement,
+so we can investigate its characteristics.
 
 ```scala
 def ap[B](f: Double => B): Double = {
@@ -437,9 +447,10 @@ A `ClassCastException` - exactly what we were hoping for. Why is this? Since
 `Function1` is specialized on the argument and return type, the interface
 includes variations of `apply` for all combinations of specialization - in
 our case, `apply$mcDD$sp`. Even if a function doesn't use primitives, it must
-still implement these variations. Scala provides defaults for all versions in
-`AbstractFunction1`, which simply delegate to a static version of the method on
-`Function1$class`. The method looks like this:
+still provide an implementation of these variations. Scala provides defaults
+for all versions in `AbstractFunction1` (to avoid bytecode bloat), which simply
+delegate to a default static version of the method on `Function1$class`. The
+static method looks like this:
 
 ```
   public static double apply$mcDD$sp(scala.Function1, double);
@@ -572,7 +583,9 @@ Of course, there is a lot of code duplication, casts, reflection, and all sorts
 of other terrible things. This kind of code is rarely worth the performance
 benefit.  In Framian, this kind of code is largely contained in our `Column`
 data structure. It's got a small API foot print, but it's used so ubiquitously
-that it is worth optimizing.
+that it is worth optimizing. It is worth noting that most of the specialized
+code in Framian's `Column` is actually generated for us and not written
+manually.
 
 [Framian]: https://github.com/pellucidanalytics/framian
 [Project]: https://github.com/tixxit/optimistic-spec-article
