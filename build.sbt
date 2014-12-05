@@ -33,5 +33,5 @@ lazy val attempt6 = project.
     resolvers += Resolver.sonatypeRepo("snapshots"),
     libraryDependencies += "org.scala-miniboxing.plugins" %% "miniboxing-runtime" % "0.4-SNAPSHOT" changing(),
     addCompilerPlugin("org.scala-miniboxing.plugins" %% "miniboxing-plugin" % "0.4-SNAPSHOT" changing()),
-    scalacOptions ++= Seq("-P:minibox:warn", "-P:minibox:mark-all", "-P:minibox:Yrewire-functionX-application")
+    scalacOptions ++= Seq("-P:minibox:warn", "-P:minibox:Yrewire-functionX-application")
   )

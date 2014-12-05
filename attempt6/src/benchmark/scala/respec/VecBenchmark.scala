@@ -5,6 +5,7 @@ import scala.util.Random
 import org.openjdk.jmh.annotations.{ Benchmark, Scope, State }
 
 class VecMapBenchmark {
+
   @Benchmark
   def squareDoubleArrayWithLoop(data: MapData) = {
     val xs = data.doubleData
