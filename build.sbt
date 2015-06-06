@@ -2,6 +2,8 @@ scalaVersion in ThisBuild := "2.11.4"
 
 scalacOptions in ThisBuild ++= Seq("-deprecation", "-feature", "-unchecked", "-optimize")
 
+javaOptions in run ++= Seq("-Xms2G", "-Xmx2G")
+
 lazy val root = project.
   in(file(".")).
   enablePlugins(BenchmarkPlugin)
@@ -31,7 +33,7 @@ lazy val attempt6 = project.
   enablePlugins(BenchmarkPlugin).
   settings(
     resolvers += Resolver.sonatypeRepo("snapshots"),
-    libraryDependencies += "org.scala-miniboxing.plugins" %% "miniboxing-runtime" % "0.4-SNAPSHOT" changing(),
-    addCompilerPlugin("org.scala-miniboxing.plugins" %% "miniboxing-plugin" % "0.4-SNAPSHOT" changing()),
-    scalacOptions ++= Seq("-P:minibox:warn", "-P:minibox:Yrewire-functionX-application")
+    libraryDependencies += "org.scala-miniboxing.plugins" %% "miniboxing-runtime" % "0.4-M4" changing(),
+    addCompilerPlugin("org.scala-miniboxing.plugins" %% "miniboxing-plugin" % "0.4-M4" changing()),
+    scalacOptions ++= Seq("-P:minibox:mark-all")
   )
