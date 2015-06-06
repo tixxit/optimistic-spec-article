@@ -33,7 +33,7 @@ lazy val attempt6 = project.
   enablePlugins(BenchmarkPlugin).
   settings(
     resolvers += Resolver.sonatypeRepo("snapshots"),
-    libraryDependencies += "org.scala-miniboxing.plugins" %% "miniboxing-runtime" % "0.4-M4" changing(),
-    addCompilerPlugin("org.scala-miniboxing.plugins" %% "miniboxing-plugin" % "0.4-M4" changing()),
+    libraryDependencies += "org.scala-miniboxing.plugins" %% "miniboxing-runtime" % "0.4-M4",
+    addCompilerPlugin("org.scala-miniboxing.plugins" %% "miniboxing-plugin" % "0.4-M4"),
     scalacOptions ++= Seq("-P:minibox:mark-all")
   )
