@@ -2,11 +2,9 @@ scalaVersion in ThisBuild := "2.11.6"
 
 scalacOptions in ThisBuild ++= Seq("-deprecation", "-feature", "-unchecked", "-optimize")
 
-javaOptions in run ++= Seq("-Xms2g", "-Xmx2g", "-Xss4m",
-			   "-XX:+CMSClassUnloadingEnabled",
-			   "-XX:MaxPermSize=512M",
-			   "-XX:ReservedCodeCacheSize=256m", "-XX:PermSize=256m",
-			   "-XX:+TieredCompilation", "-XX:+UseNUMA")
+fork in ThisBuild := true
+
+javaOptions in ThisBuild ++= Seq("-Xms3g", "-Xmx3g", "-Xss4m")
 
 lazy val root = project.
   in(file(".")).
